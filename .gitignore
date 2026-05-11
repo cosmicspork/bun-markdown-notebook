@@ -1,0 +1,8 @@
+node_modules/
+.DS_Store
+*.log
+.env
+.env.local
+
+# the user's own docs corpus shouldn't land in this repo
+docs/

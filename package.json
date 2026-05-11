@@ -1,0 +1,25 @@
+{
+  "name": "notebook",
+  "version": "0.1.0",
+  "description": "Small SPA + Bun server that turns a flat directory of <type>-<slug>.md files into a live, WYSIWYG-edited notebook.",
+  "type": "module",
+  "private": false,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@gitlab.com/jbowen1/notebook.git"
+  },
+  "scripts": {
+    "start": "bun run server.ts",
+    "dev": "bun --hot run server.ts"
+  },
+  "engines": {
+    "bun": ">=1.3.0"
+  },
+  "dependencies": {
+    "chokidar": "^4.0.3"
+  },
+  "devDependencies": {
+    "bun-types": "^1.3.13"
+  }
+}

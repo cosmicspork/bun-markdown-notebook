@@ -1,0 +1,677 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>notebook</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%20100%20100%22%3E%3Ctext%20y%3D%22.9em%22%20font-size%3D%2290%22%3E%F0%9F%93%93%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://uicdn.toast.com/editor/latest/toastui-editor.min.css" />
+<link rel="stylesheet" href="https://uicdn.toast.com/editor/latest/theme/toastui-editor-dark.min.css" />
+<style>
+  :root {
+    --bg: #f7f9fc;
+    --panel: #ffffff;
+    --border: #dadde6;
+    --text: #222;
+    --muted: #81858f;
+    --accent: #c8102e;
+    --hover: #eef0f4;
+    --active: #fbe9eb;
+    --warn-bg: #fff4e5;
+    --warn-text: #8a4b00;
+    --warn-border: #ffd699;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #121212;
+      --panel: #232428;
+      --border: #303238;
+      --text: #eee;
+      --muted: #8f939f;
+      --accent: #ff5765;
+      --hover: #36383f;
+      --active: #2d1f22;
+      --warn-bg: #3a2a14;
+      --warn-text: #ffb84d;
+      --warn-border: #5a4020;
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 14px; }
+  .app { display: grid; grid-template-columns: 280px 1fr; height: 100vh; }
+  .sidebar { background: var(--panel); border-right: 1px solid var(--border); overflow-y: auto; display: flex; flex-direction: column; }
+  .sidebar-header { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+  .sidebar-header input { width: 100%; padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); font-size: 13px; }
+  .sidebar-tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px 12px 10px; border-bottom: 1px solid var(--border); }
+  .tab { background: transparent; border: 1px solid var(--border); color: var(--text); padding: 3px 9px; font-size: 11px; border-radius: 11px; cursor: pointer; font-family: inherit; line-height: 1.5; display: inline-flex; align-items: baseline; gap: 4px; }
+  .tab:hover { background: var(--hover); }
+  .tab.active { background: var(--accent); color: white; border-color: var(--accent); }
+  .tab-count { opacity: 0.55; font-size: 10px; }
+  .tab.active .tab-count { opacity: 0.85; }
+  .sidebar-list { flex: 1; padding: 8px 0; }
+  .sidebar-section { padding: 14px 16px 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+  .doc-item { display: block; padding: 6px 16px; cursor: pointer; border-left: 2px solid transparent; }
+  .doc-item:hover { background: var(--hover); }
+  .doc-item.active { background: var(--active); border-left-color: var(--accent); }
+  .doc-title { font-size: 13px; }
+  .doc-meta { font-size: 11px; color: var(--muted); margin-top: 1px; font-family: ui-monospace, SFMono-Regular, monospace; }
+  .main { display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+  .main-header { padding: 12px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--panel); }
+  .main-title { font-size: 16px; font-weight: 600; }
+  .main-meta { font-size: 12px; color: var(--muted); font-family: ui-monospace, SFMono-Regular, monospace; display: flex; align-items: center; gap: 10px; }
+  .save-status { font-size: 11px; padding: 1px 7px; border-radius: 8px; }
+  .save-status.idle { display: none; }
+  .save-status.saving, .save-status.dirty { background: var(--hover); color: var(--muted); }
+  .save-status.saved { background: var(--hover); color: var(--muted); }
+  .save-status.error { background: var(--warn-bg); color: var(--warn-text); }
+  .conflict-banner { background: var(--warn-bg); color: var(--warn-text); border-bottom: 1px solid var(--warn-border); padding: 10px 24px; display: flex; align-items: center; gap: 12px; font-size: 13px; }
+  .conflict-banner button { background: var(--warn-text); color: var(--warn-bg); border: 0; padding: 4px 10px; border-radius: 4px; font-size: 12px; cursor: pointer; font-family: inherit; }
+  .conflict-banner button.secondary { background: transparent; color: var(--warn-text); border: 1px solid var(--warn-border); }
+  .main-body { flex: 1; overflow: auto; min-height: 0; }
+  .iframe-host { width: 100%; height: 100%; border: 0; background: white; display: block; }
+  .dashboard { padding: 24px 32px; max-width: 760px; }
+  .dashboard h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin: 28px 0 6px; font-weight: 600; }
+  .dashboard h2:first-of-type { margin-top: 4px; }
+  .todo { display: flex; align-items: flex-start; padding: 5px 0; gap: 10px; border-bottom: 1px solid var(--border); }
+  .todo:last-child { border-bottom: 0; }
+  .todo input { margin-top: 4px; flex-shrink: 0; }
+  .todo .text { flex: 1; }
+  .todo .source { color: var(--muted); font-size: 12px; font-family: ui-monospace, SFMono-Regular, monospace; flex-shrink: 0; cursor: pointer; }
+  .todo .source:hover { color: var(--accent); }
+  .todo .text.done { text-decoration: line-through; }
+  .marker-bullet, .marker-numbered { color: var(--muted); flex-shrink: 0; }
+  .marker-bullet { width: 14px; text-align: center; font-size: 14px; }
+  .marker-numbered { min-width: 18px; text-align: right; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .empty-state { padding: 40px; text-align: center; color: var(--muted); font-size: 14px; }
+  .toastui-editor-defaultUI { border: 0; height: 100%; }
+</style>
+<script src="https://uicdn.toast.com/editor/latest/toastui-editor-all.min.js"></script>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <input type="text" placeholder="search…" id="search" autocomplete="off">
+    </div>
+    <div class="sidebar-tabs" id="tabs"></div>
+    <nav class="sidebar-list" id="docList"></nav>
+  </aside>
+  <main class="main">
+    <header class="main-header">
+      <div class="main-title" id="mainTitle">Dashboard</div>
+      <div class="main-meta">
+        <span id="mainMeta"></span>
+        <span class="save-status idle" id="saveStatus"></span>
+      </div>
+    </header>
+    <div class="conflict-banner" id="conflictBanner" style="display: none;">
+      <span>This file changed on disk.</span>
+      <button id="reloadFromDisk">Reload from disk</button>
+      <button id="overwriteAnyway" class="secondary">Overwrite anyway</button>
+    </div>
+    <div class="main-body" id="mainBody"></div>
+  </main>
+</div>
+<script>
+  const TYPE_GROUPS = [
+    { type: 'note', label: 'Notes' },
+    { type: 'repo', label: 'Repos' },
+    { type: 'meeting', label: 'Meetings' },
+    { type: 'inbox', label: 'Inbox' },
+    { type: 'proposal', label: 'Proposals' },
+    { type: 'plan', label: 'Plans' },
+    { type: 'guide', label: 'Guides' },
+    { type: 'ref', label: 'Reference' },
+    { type: 'architecture', label: 'Architecture' },
+    { type: 'html', label: 'HTML docs' },
+    { type: 'other', label: 'Other' },
+  ];
+  const SAVE_DEBOUNCE_MS = 750;
+  const DRAFT_DEBOUNCE_MS = 200;
+  const SEARCH_DEBOUNCE_MS = 120;
+
+  let docs = new Map();
+  let active = '__dashboard';
+  let activeTab = 'all';
+  let editor = null;
+  let saveTimer = null;
+  let draftTimer = null;
+  let saveState = 'idle';
+  let conflictServerBody = null;
+  let searchHits = null;
+  let searchTimer = null;
+
+  // ---- IndexedDB draft buffer ----
+  let dbPromise = null;
+  function getDb() {
+    if (!dbPromise) {
+      dbPromise = new Promise((resolve, reject) => {
+        const req = indexedDB.open('notebook', 1);
+        req.onupgradeneeded = () => req.result.createObjectStore('drafts', { keyPath: 'file' });
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+    return dbPromise;
+  }
+  async function dbOp(mode, fn) {
+    const db = await getDb();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('drafts', mode);
+      const store = tx.objectStore('drafts');
+      const result = fn(store);
+      tx.oncomplete = () => resolve(result?.result ?? undefined);
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+  async function persistDraft(file, body, baseHash) {
+    try { await dbOp('readwrite', s => s.put({ file, body, baseHash, savedAt: Date.now() })); } catch {}
+  }
+  async function clearDraft(file) {
+    try { await dbOp('readwrite', s => s.delete(file)); } catch {}
+  }
+  async function loadDraft(file) {
+    try { return await dbOp('readonly', s => s.get(file)); } catch { return null; }
+  }
+
+  // ---- Helpers ----
+  function titleOf(doc) { return doc.title || doc.file; }
+
+  function relativeTime(ms) {
+    const days = Math.round((Date.now() - ms) / 86400000);
+    if (days <= 0) return 'today';
+    if (days === 1) return 'yesterday';
+    if (days < 7) return days + 'd ago';
+    if (days < 30) return Math.floor(days / 7) + 'w ago';
+    return Math.floor(days / 30) + 'mo ago';
+  }
+  function shortTime(ms) {
+    const s = Math.floor((Date.now() - ms) / 1000);
+    if (s < 5) return 'just now';
+    if (s < 60) return s + 's ago';
+    if (s < 3600) return Math.floor(s / 60) + 'm ago';
+    return Math.floor(s / 3600) + 'h ago';
+  }
+  // ---- URL hash state ----
+  function readHash() {
+    const params = new URLSearchParams(location.hash.slice(1));
+    return {
+      doc: params.get('doc'),
+      tab: params.get('tab') || 'all',
+      search: params.get('search') || '',
+    };
+  }
+  function writeHash(opts = { push: false }) {
+    const params = new URLSearchParams();
+    if (active !== '__dashboard') params.set('doc', active);
+    if (activeTab !== 'all') params.set('tab', activeTab);
+    const q = document.getElementById('search').value;
+    if (q) params.set('search', q);
+    const newHash = '#' + params.toString();
+    if (newHash === location.hash || (newHash === '#' && !location.hash)) return;
+    if (opts.push) history.pushState(null, '', newHash);
+    else history.replaceState(null, '', newHash);
+  }
+
+  // ---- Save flow ----
+  let lastSavedAt = null;
+  function setSaveStatus(state) {
+    saveState = state;
+    const el = document.getElementById('saveStatus');
+    el.className = 'save-status ' + state;
+    if (state === 'idle') el.textContent = '';
+    else if (state === 'dirty') el.textContent = 'unsaved';
+    else if (state === 'saving') el.textContent = 'saving…';
+    else if (state === 'saved') el.textContent = lastSavedAt ? 'saved ' + shortTime(lastSavedAt) : 'saved';
+    else if (state === 'error') el.textContent = 'save failed';
+  }
+
+  function scheduleSave() {
+    if (saveTimer) clearTimeout(saveTimer);
+    if (draftTimer) clearTimeout(draftTimer);
+    setSaveStatus('dirty');
+    if (active && active !== '__dashboard') {
+      draftTimer = setTimeout(() => {
+        const doc = docs.get(active);
+        if (doc) persistDraft(active, editor.getMarkdown(), doc.hash);
+      }, DRAFT_DEBOUNCE_MS);
+    }
+    saveTimer = setTimeout(save, SAVE_DEBOUNCE_MS);
+  }
+
+  async function save({ overwrite = false } = {}) {
+    if (!editor || active === '__dashboard') return;
+    const doc = docs.get(active);
+    if (!doc) return;
+    const body = editor.getMarkdown();
+    if (!overwrite && body === doc.body) { setSaveStatus('idle'); return; }
+    if (overwrite) hideConflict();
+    setSaveStatus('saving');
+    try {
+      const res = await fetch('/api/doc/' + encodeURIComponent(active), {
+        method: 'PUT',
+        headers: { 'Content-Type': 'text/markdown', 'If-Match': doc.hash },
+        body,
+      });
+      if (res.status === 412) {
+        const payload = await res.json();
+        doc.hash = payload.hash;
+        conflictServerBody = payload.body;
+        setSaveStatus('error');
+        showConflict();
+        return;
+      }
+      if (!res.ok) throw new Error('save failed: ' + res.status);
+      const payload = await res.json();
+      doc.body = body;
+      doc.hash = payload.hash;
+      doc.mtime = payload.mtime;
+      doc.title = payload.title;
+      lastSavedAt = Date.now();
+      setSaveStatus('saved');
+      await clearDraft(active);
+    } catch (e) {
+      console.error(e);
+      setSaveStatus('error');
+    }
+  }
+
+  function showConflict() {
+    document.getElementById('conflictBanner').style.display = '';
+  }
+  function hideConflict() {
+    document.getElementById('conflictBanner').style.display = 'none';
+    conflictServerBody = null;
+  }
+
+  document.getElementById('reloadFromDisk').onclick = async () => {
+    if (!active || active === '__dashboard') return;
+    if (!docs.has(active)) return;
+    await clearDraft(active);
+    hideConflict();
+    // Tear down + re-open so the editor's undo history starts fresh —
+    // otherwise Cmd+Z could revert to the pre-conflict content.
+    openDoc(active, { push: false });
+  };
+  document.getElementById('overwriteAnyway').onclick = () => save({ overwrite: true });
+
+  // ---- SSE: live updates from disk ----
+  function connectSSE() {
+    const es = new EventSource('/api/events');
+    es.onmessage = (e) => {
+      try { handleSseEvent(JSON.parse(e.data)); } catch {}
+    };
+    es.onerror = () => { /* EventSource auto-reconnects */ };
+  }
+
+  function refreshSidebar() {
+    renderTabs();
+    renderSidebar();
+    if (searchHits !== null) runSearch();
+  }
+
+  async function handleSseEvent(event) {
+    if (event.kind === 'remove') {
+      docs.delete(event.file);
+      if (active === event.file) openDashboard({ push: false });
+      refreshSidebar();
+      return;
+    }
+
+    const { file, type, hash, mtime, title } = event;
+    const prev = docs.get(file);
+    if (prev && prev.hash === hash) return;
+
+    if (active !== file || !prev) {
+      docs.set(file, { file, type, hash, mtime, title });
+      refreshSidebar();
+      if (active === '__dashboard') openDashboard({ push: false });
+      return;
+    }
+
+    // Active-doc external change: fetch body and surface the conflict banner.
+    // Never silently overwrite the editor — doing so would leave the
+    // pre-change content in the editor's undo stack, and a reflexive Cmd+Z
+    // would clobber the external edit back to the old version on the next
+    // auto-save.
+    let body;
+    try {
+      const res = await fetch('/api/doc/' + encodeURIComponent(file));
+      if (!res.ok) return;
+      body = await res.text();
+    } catch (e) {
+      console.error('SSE body fetch failed', e);
+      return;
+    }
+    docs.set(file, { file, type, hash, mtime, title, body });
+    if (type === 'html') {
+      openDoc(file, { push: false });
+      return;
+    }
+    conflictServerBody = body;
+    showConflict();
+    refreshSidebar();
+  }
+
+  // ---- Rendering ----
+  function renderTabs() {
+    const el = document.getElementById('tabs');
+    el.innerHTML = '';
+    const counts = new Map();
+    for (const d of docs.values()) counts.set(d.type, (counts.get(d.type) || 0) + 1);
+    const items = [{ key: 'all', label: 'all', count: docs.size }];
+    for (const g of TYPE_GROUPS) {
+      const c = counts.get(g.type) || 0;
+      if (c === 0) continue;
+      items.push({ key: g.type, label: g.label.toLowerCase(), count: c });
+    }
+    for (const item of items) {
+      const btn = document.createElement('button');
+      btn.className = 'tab' + (item.key === activeTab ? ' active' : '');
+      btn.innerHTML = `<span></span><span class="tab-count"></span>`;
+      btn.children[0].textContent = item.label;
+      btn.children[1].textContent = item.count;
+      btn.onclick = () => {
+        activeTab = item.key;
+        renderTabs();
+        renderSidebar();
+        writeHash({ push: true });
+      };
+      el.appendChild(btn);
+    }
+  }
+
+  function renderSidebar() {
+    const list = document.getElementById('docList');
+    list.innerHTML = '';
+    const searching = searchHits !== null;
+
+    const dash = document.createElement('div');
+    dash.className = 'doc-item' + (active === '__dashboard' ? ' active' : '');
+    dash.innerHTML = `<div class="doc-title">Dashboard</div><div class="doc-meta">overview</div>`;
+    dash.onclick = () => openDashboard({ push: true });
+    list.appendChild(dash);
+
+    const showHeaders = activeTab === 'all' || searching;
+    const allDocs = Array.from(docs.values()).sort((a, b) => b.mtime - a.mtime);
+
+    for (const group of TYPE_GROUPS) {
+      if (!searching && activeTab !== 'all' && activeTab !== group.type) continue;
+
+      const matches = allDocs
+        .filter(d => d.type === group.type)
+        .filter(d => !searching || searchHits.has(d.file));
+      if (!matches.length) continue;
+
+      if (showHeaders) {
+        const section = document.createElement('div');
+        section.className = 'sidebar-section';
+        section.textContent = group.label;
+        list.appendChild(section);
+      }
+
+      for (const doc of matches) {
+        const item = document.createElement('div');
+        item.className = 'doc-item' + (active === doc.file ? ' active' : '');
+        item.innerHTML = `<div class="doc-title"></div><div class="doc-meta"></div>`;
+        item.querySelector('.doc-title').textContent = titleOf(doc);
+        item.querySelector('.doc-meta').textContent = `${doc.file} · ${relativeTime(doc.mtime)}`;
+        item.onclick = () => openDoc(doc.file, { push: true });
+        list.appendChild(item);
+      }
+    }
+  }
+
+  function teardownEditor() {
+    if (editor) { try { editor.destroy(); } catch {} editor = null; }
+    if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+    if (draftTimer) { clearTimeout(draftTimer); draftTimer = null; }
+    hideConflict();
+    setSaveStatus('idle');
+  }
+
+  function updateMainHeader(doc) {
+    document.getElementById('mainTitle').textContent = titleOf(doc);
+    document.getElementById('mainMeta').textContent = `${doc.file} · updated ${relativeTime(doc.mtime)}`;
+  }
+
+  async function openDashboard(opts = { push: false }) {
+    teardownEditor();
+    active = '__dashboard';
+    renderSidebar();
+    document.getElementById('mainTitle').textContent = 'Dashboard';
+    document.getElementById('mainMeta').textContent = 'auto-discovered from working notes';
+    const body = document.getElementById('mainBody');
+    body.innerHTML = '<div class="empty-state">Loading…</div>';
+    writeHash(opts);
+
+    let data;
+    try {
+      const res = await fetch('/api/dashboard');
+      if (!res.ok) throw new Error('dashboard failed: ' + res.status);
+      data = await res.json();
+    } catch (e) {
+      console.error(e);
+      if (active === '__dashboard') body.innerHTML = '<div class="empty-state">Failed to load dashboard.</div>';
+      return;
+    }
+    if (active !== '__dashboard') return;
+
+    body.innerHTML = '';
+    const dash = document.createElement('div');
+    dash.className = 'dashboard';
+
+    if (data.priorities.length) {
+      const h = document.createElement('h2');
+      h.textContent = 'Priorities';
+      dash.appendChild(h);
+      for (const item of data.priorities) {
+        dash.appendChild(priorityRow(item, item.file));
+      }
+    }
+
+    const h2 = document.createElement('h2');
+    h2.textContent = 'Open todos';
+    dash.appendChild(h2);
+    if (data.todos.length === 0) {
+      const empty = document.createElement('div');
+      empty.style.color = 'var(--muted)';
+      empty.style.fontSize = '13px';
+      empty.style.padding = '8px 0';
+      empty.textContent = 'No open todos in working notes.';
+      dash.appendChild(empty);
+    } else {
+      for (const t of data.todos) dash.appendChild(todoRow(t.text, t.file));
+    }
+
+    body.appendChild(dash);
+  }
+
+  function todoRow(text, file) {
+    const row = document.createElement('div');
+    row.className = 'todo';
+    const cb = document.createElement('input'); cb.type = 'checkbox';
+    const txt = document.createElement('div'); txt.className = 'text'; txt.textContent = text;
+    const src = document.createElement('div'); src.className = 'source'; src.textContent = file;
+    src.onclick = (e) => { e.stopPropagation(); openDoc(file, { push: true }); };
+    row.appendChild(cb); row.appendChild(txt); row.appendChild(src);
+    return row;
+  }
+
+  function priorityRow(item, file) {
+    const row = document.createElement('div');
+    row.className = 'todo';
+    let marker;
+    if (item.checked != null) {
+      // Even for `1. [ ] foo`, the checkbox is the primary marker.
+      marker = document.createElement('input');
+      marker.type = 'checkbox';
+      marker.checked = item.checked;
+      marker.disabled = true;
+    } else if (item.kind === 'numbered') {
+      marker = document.createElement('span');
+      marker.className = 'marker-numbered';
+      marker.textContent = item.number + '.';
+    } else {
+      marker = document.createElement('span');
+      marker.className = 'marker-bullet';
+      marker.textContent = '•';
+    }
+    const txt = document.createElement('div');
+    txt.className = 'text' + (item.checked === true ? ' done' : '');
+    txt.textContent = item.text;
+    const src = document.createElement('div');
+    src.className = 'source';
+    src.textContent = file;
+    src.onclick = (e) => { e.stopPropagation(); openDoc(file, { push: true }); };
+    row.appendChild(marker);
+    row.appendChild(txt);
+    row.appendChild(src);
+    return row;
+  }
+
+  async function openDoc(file, opts = { push: false }) {
+    teardownEditor();
+    const doc = docs.get(file);
+    if (!doc) { openDashboard(opts); return; }
+    active = file;
+    renderSidebar();
+    updateMainHeader(doc);
+    const bodyEl = document.getElementById('mainBody');
+    bodyEl.innerHTML = '<div class="empty-state">Loading…</div>';
+
+    let body = doc.body;
+    if (body == null) {
+      try {
+        const res = await fetch('/api/doc/' + encodeURIComponent(file));
+        if (!res.ok) throw new Error('load failed: ' + res.status);
+        body = await res.text();
+      } catch (e) {
+        console.error(e);
+        if (active === file) bodyEl.innerHTML = '<div class="empty-state">Failed to load doc.</div>';
+        return;
+      }
+      if (active !== file) return;
+      doc.body = body;
+    }
+
+    bodyEl.innerHTML = '';
+
+    if (doc.type === 'html') {
+      const iframe = document.createElement('iframe');
+      iframe.className = 'iframe-host';
+      iframe.srcdoc = body;
+      iframe.sandbox = 'allow-scripts';
+      bodyEl.appendChild(iframe);
+      writeHash(opts);
+      return;
+    }
+
+    const host = document.createElement('div');
+    host.style.height = '100%';
+    bodyEl.appendChild(host);
+    const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const mode = localStorage.getItem('notebook.editorMode') || 'wysiwyg';
+    editor = new toastui.Editor({
+      el: host,
+      height: '100%',
+      initialEditType: mode,
+      previewStyle: 'tab',
+      initialValue: body,
+      hideModeSwitch: false,
+      usageStatistics: false,
+      theme: dark ? 'dark' : 'light',
+      events: {
+        change: () => scheduleSave(),
+        changeMode: (next) => localStorage.setItem('notebook.editorMode', next),
+      },
+    });
+
+    const draft = await loadDraft(file);
+    if (draft && draft.baseHash === doc.hash && draft.body !== body) {
+      editor.setMarkdown(draft.body);
+      setSaveStatus('dirty');
+      scheduleSave();
+    } else if (draft) {
+      clearDraft(file);
+    }
+
+    writeHash(opts);
+  }
+
+  // ---- Boot ----
+  async function boot() {
+    const res = await fetch('/api/index');
+    const list = await res.json();
+    docs = new Map(list.map(d => [d.file, d]));
+
+    const initial = readHash();
+    activeTab = initial.tab;
+    document.getElementById('search').value = initial.search;
+
+    renderTabs();
+    renderSidebar();
+    if (initial.search) runSearch();
+
+    if (initial.doc && docs.has(initial.doc)) openDoc(initial.doc, { push: false });
+    else openDashboard({ push: false });
+
+    connectSSE();
+
+    setInterval(() => {
+      if (saveState === 'saved' && lastSavedAt) setSaveStatus('saved');
+    }, 5000);
+  }
+
+  async function runSearch() {
+    const q = document.getElementById('search').value.trim();
+    if (!q) {
+      searchHits = null;
+      renderSidebar();
+      return;
+    }
+    try {
+      const res = await fetch('/api/search?q=' + encodeURIComponent(q));
+      if (!res.ok) return;
+      const hits = await res.json();
+      if (document.getElementById('search').value.trim() !== q) return;
+      searchHits = new Set(hits.map(h => h.file));
+      renderSidebar();
+    } catch (e) {
+      console.error('search failed', e);
+    }
+  }
+
+  function scheduleSearch() {
+    if (searchTimer) clearTimeout(searchTimer);
+    if (!document.getElementById('search').value.trim()) {
+      searchHits = null;
+      renderSidebar();
+      return;
+    }
+    searchTimer = setTimeout(runSearch, SEARCH_DEBOUNCE_MS);
+  }
+
+  document.getElementById('search').addEventListener('input', () => {
+    scheduleSearch();
+    writeHash({ push: false });
+  });
+
+  window.addEventListener('popstate', () => {
+    const state = readHash();
+    activeTab = state.tab;
+    document.getElementById('search').value = state.search;
+    renderTabs();
+    runSearch();
+    if (state.doc && docs.has(state.doc)) openDoc(state.doc, { push: false });
+    else openDashboard({ push: false });
+  });
+
+  setInterval(() => { if (active !== '__dashboard') renderSidebar(); }, 60000);
+
+  boot().catch((e) => {
+    console.error(e);
+    document.getElementById('mainBody').innerHTML = '<div class="empty-state">Failed to load. Is the server running?</div>';
+  });
+</script>
+</body>
+</html>
