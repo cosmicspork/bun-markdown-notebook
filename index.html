@@ -493,6 +493,23 @@
     const txt = document.createElement('div'); txt.className = 'text'; txt.textContent = text;
     const src = document.createElement('div'); src.className = 'source'; src.textContent = file;
     src.onclick = (e) => { e.stopPropagation(); openDoc(file, { push: true }); };
+    cb.onchange = async () => {
+      cb.disabled = true;
+      try {
+        const res = await fetch('/api/toggle-todo', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ file, text, checked: cb.checked }),
+        });
+        if (!res.ok) throw new Error('toggle failed: ' + res.status);
+        txt.classList.add('done');
+        row.style.opacity = '0.4';
+      } catch (e) {
+        console.error(e);
+        cb.checked = !cb.checked;
+        cb.disabled = false;
+      }
+    };
     row.appendChild(cb); row.appendChild(txt); row.appendChild(src);
     return row;
   }

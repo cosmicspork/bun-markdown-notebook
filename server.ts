@@ -362,6 +362,36 @@ const server = Bun.serve({
       return Response.json(doc, { status: 201 });
     }
 
+    if (req.method === 'POST' && path === '/api/toggle-todo') {
+      const payload = (await req.json()) as { file?: string; text?: string; checked?: boolean };
+      const file = payload.file ?? '';
+      const text = payload.text ?? '';
+      const checked = payload.checked === true;
+      const abs = safeFile(file);
+      if (!abs) return new Response('bad path', { status: 400 });
+      const current = index.get(file);
+      if (!current) return new Response('not found', { status: 404 });
+      const lines = current.body.split('\n');
+      const newMark = checked ? 'x' : ' ';
+      let toggled = false;
+      for (let i = 0; i < lines.length; i++) {
+        const m = lines[i].match(LIST_ITEM_RE);
+        if (!m) continue;
+        const lineMark = m[3];
+        if (lineMark !== ' ' && lineMark !== 'x' && lineMark !== 'X') continue;
+        if (m[4] !== text) continue;
+        const isCheckedNow = lineMark === 'x' || lineMark === 'X';
+        if (isCheckedNow === checked) continue;
+        lines[i] = lines[i].replace(/\[[ xX]\]/, `[${newMark}]`);
+        toggled = true;
+        break;
+      }
+      if (!toggled) return new Response('todo not found', { status: 404 });
+      const updated = await writeAndIndex(file, abs, lines.join('\n'), current);
+      broadcast({ kind: 'change', file, type: updated.type, hash: updated.hash, mtime: updated.mtime, title: updated.title });
+      return Response.json({ hash: updated.hash });
+    }
+
     return new Response('not found', { status: 404 });
   },
 });
