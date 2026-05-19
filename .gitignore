@@ -6,3 +6,6 @@ node_modules/
 
 # the user's own docs corpus shouldn't land in this repo
 docs/
+
+# local Claude Code permission state
+.claude/
