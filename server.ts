@@ -6,6 +6,8 @@ import { Buffer } from 'node:buffer';
 const DOCS_DIR = resolve(process.env.DOCS_DIR ?? './docs');
 const PORT = Number(process.env.PORT ?? 3000);
 const HTML_PATH = new URL('./index.html', import.meta.url).pathname;
+const APP_ENTRY = new URL('./src/app.ts', import.meta.url).pathname;
+const SRC_DIR = new URL('./src', import.meta.url).pathname;
 
 const TYPE_PREFIXES = [
   'note', 'repo', 'meeting', 'inbox',
@@ -244,6 +246,50 @@ async function writeAndIndex(file: string, abs: string, body: string, prev?: Doc
   return doc;
 }
 
+// ---- Browser-bundle build (src/app.ts → /app.js) ----
+let cachedAppJs: string | null = null;
+let cachedAppError: string | null = null;
+
+async function buildAppBundle() {
+  const result = await Bun.build({
+    entrypoints: [APP_ENTRY],
+    target: 'browser',
+    minify: true,
+    sourcemap: 'inline',
+  });
+  if (!result.success || result.outputs.length === 0) {
+    cachedAppError = result.logs.map((l) => String(l)).join('\n') || 'unknown build error';
+    cachedAppJs = null;
+    console.error('[notebook] app bundle build failed:\n' + cachedAppError);
+    return;
+  }
+  cachedAppJs = await result.outputs[0].text();
+  cachedAppError = null;
+  console.log(`[notebook] bundled src/app.ts (${cachedAppJs.length} bytes)`);
+}
+
+function setupAppWatcher() {
+  let pending: ReturnType<typeof setTimeout> | null = null;
+  const trigger = () => {
+    if (pending) clearTimeout(pending);
+    pending = setTimeout(() => {
+      pending = null;
+      buildAppBundle().catch((e) => console.error('[notebook] rebuild failed:', e));
+    }, 80);
+  };
+  const watcher = chokidar.watch(SRC_DIR, {
+    persistent: true,
+    ignoreInitial: true,
+    awaitWriteFinish: { stabilityThreshold: 60, pollInterval: 30 },
+  });
+  watcher.on('add', trigger);
+  watcher.on('change', trigger);
+  watcher.on('unlink', trigger);
+  watcher.on('error', (err) => console.error('[notebook] src watcher error:', err));
+}
+
+await buildAppBundle();
+setupAppWatcher();
 await buildIndex();
 setupWatcher();
 
@@ -257,6 +303,21 @@ const server = Bun.serve({
       return new Response(Bun.file(HTML_PATH), {
         headers: { 'Content-Type': 'text/html; charset=utf-8' },
       });
+    }
+
+    if (req.method === 'GET' && path === '/app.js') {
+      if (cachedAppJs) {
+        return new Response(cachedAppJs, {
+          headers: {
+            'Content-Type': 'application/javascript; charset=utf-8',
+            'Cache-Control': 'no-cache',
+          },
+        });
+      }
+      return new Response(
+        `// notebook: app bundle failed to build\nconsole.error(${JSON.stringify(cachedAppError ?? 'unknown error')});`,
+        { status: 500, headers: { 'Content-Type': 'application/javascript; charset=utf-8' } },
+      );
     }
 
     if (req.method === 'GET' && path === '/api/index') {
