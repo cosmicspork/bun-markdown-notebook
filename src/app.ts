@@ -559,7 +559,6 @@ function notebookTheme(dark: boolean) {
       },
       '.cm-content': {
         caretColor: 'var(--accent)',
-        maxWidth: '760px',
       },
       '.cm-line': {
         padding: '0 4px',
