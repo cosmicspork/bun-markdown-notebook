@@ -9,7 +9,7 @@ Most note tools either lock your data in a proprietary store or push you toward 
 ## Features
 
 - **Auto-discovery.** The server scans the docs directory on boot and live-watches with chokidar. The SPA fetches one JSON index and stays in sync.
-- **Live WYSIWYG.** Toast UI Editor renders markdown in WYSIWYG mode. Your mode preference (WYSIWYG vs markdown source) persists globally.
+- **Live-preview editor.** A CodeMirror 6 editor edits the markdown source in place, with live decorations — headings styled inline, inline code/bold/italic rendered, task checkboxes interactive, and link URLs folded away until the caret enters them. The UI is built as Lit web components.
 - **HTML docs in a Shadow DOM.** Files like `foo.html` render in an open shadow root — style-isolated from the app in both directions, no iframe. There is one authoring gotcha; see [Authoring HTML docs](#authoring-html-docs). Good for one-off documents that don't fit markdown.
 - **Auto-save with conflict detection.** Edits debounce-save with `If-Match: <hash>`. If another process rewrites a file between load and save, the SPA shows a conflict banner instead of silently clobbering.
 - **Live updates over SSE.** Edit a file from the CLI, the SPA picks it up within a second and surfaces the change for review.

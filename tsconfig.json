@@ -9,6 +9,10 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "skipLibCheck": true,
-    "allowJs": true
+    "allowJs": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false
   }
 }
