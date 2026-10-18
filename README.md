@@ -1,4 +1,6 @@
-# notebook
+# bun-markdown-notebook
+
+> **Archived 2026-10.** Formerly `notebook`. Superseded by the documents corpus in [tracon](https://github.com/cosmicspork/tracon). Kept as a reference and no longer maintained.
 
 A small SPA + Bun server that turns a flat directory of `<type>-<slug>.md` files into a live, WYSIWYG-edited notebook. One person, one machine, plain markdown on disk, no database.
 
